@@ -4,12 +4,24 @@ import 'package:path/path.dart' as pathPackage;
 import 'package:sqflite/sqflite.dart' as sqflitePackage;
 
 class SQFliteDbService {
-  late sqflitePackage.Database db;
+  late sqflitePackage.Database? db;
   late String path;
 
   Future<void> getOrCreateDatabaseHandle() async {
     try {
       //TODO: Put your code here to complete this method.
+      var databasesPath = await sqflitePackage.getDatabasesPath();
+      path = pathPackage.join(databasesPath, 'app_database.db');
+      db = await sqflitePackage.openDatabase(
+        path,
+        onCreate: (sqflitePackage.Database db1, int version) async {
+          await db1.execute(
+            "CREATE TABLE AppData(symbol TEXT PRIMARY KEY, name TEXT, price INT)",
+          );
+        },
+        version: 1,
+      );
+      print('db = $db');
     } catch (e) {
       print('SQFliteDbService getOrCreateDatabaseHandle: $e');
     }
@@ -18,6 +30,15 @@ class SQFliteDbService {
   Future<void> printAllStocksInDbToConsole() async {
     try {
       //TODO: Put your code here to complete this method.
+      List<Map<String, dynamic>> listOfRecords = await getAllStocksFromDb();
+      if (listOfRecords.isEmpty) {
+        print('No records in the db');
+      } else {
+        listOfRecords.forEach((item) {
+          print(
+              '{symbol: ${item['symbol']}, name: ${item['name']}, price: ${item['price']}');
+        });
+      }
     } catch (e) {
       print('SQFliteDbService printAllStocksInDbToConsole: $e');
     }
@@ -27,7 +48,8 @@ class SQFliteDbService {
     try {
       //TODO: Put your code here to complete this method.
       // Replace this return with valid data.
-      return <Map<String, dynamic>>[];
+      final List<Map<String, dynamic>> listOfItems = await db!.query('AppData');
+      return listOfItems;
     } catch (e) {
       print('SQFliteDbService getAllStocksFromDb: $e');
       return <Map<String, dynamic>>[];
@@ -37,7 +59,9 @@ class SQFliteDbService {
   Future<void> deleteDb() async {
     try {
       //TODO: Put your code here to implement this method.
-      print('Not Implemented Yet');
+      await sqflitePackage.deleteDatabase(path);
+      print('Db deleted');
+      db = null;
     } catch (e) {
       print('SQFliteDbService deleteDb: $e');
     }
@@ -51,7 +75,11 @@ class SQFliteDbService {
       //Also specify the conflictAlgorithm. 
       //In this case, if the same stock is inserted
       //multiple times, it replaces the previous data.
-    
+      await db!.insert(
+        'AppData',
+        stock,
+        conflictAlgorithm: sqflitePackage.ConflictAlgorithm.replace,
+      );
     } catch (e) {
       print('SQFliteDbService insertStock: $e');
     }
@@ -61,7 +89,13 @@ class SQFliteDbService {
     try {
       //TODO: 
       //Put code here to update stock info.
-      
+      await db!.update(
+        'AppData',
+        stock,
+        where: "symbol = ?",
+        // whereArg prevents SQL injection.
+        whereArgs: [stock['symbol']],
+      );
     } catch (e) {
       print('SQFliteDbService updateStock: $e');
     }
@@ -71,7 +105,12 @@ class SQFliteDbService {
     try {
       //TODO: 
       //Put code here to delete a stock from the database.
-      
+      await db!.delete(
+        'AppData',
+        where: "symbol = ?",
+        // whereArg to prevent SQL injection.
+        whereArgs: [stock['symbol']],
+      );
     } catch (e) {
       print('SQFliteDbService deleteStock: $e');
     }
