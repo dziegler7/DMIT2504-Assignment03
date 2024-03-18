@@ -26,7 +26,7 @@ class StockService {
 
   Future getQuote(String symbol) async {
     //TODO: Complete this method.
-    var url = Uri.parse('');
+    var url = Uri.parse('https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=$symbol&apikey=$apiToken');
 
     print('url: $url');
     NetworkService networkService = NetworkService(url);

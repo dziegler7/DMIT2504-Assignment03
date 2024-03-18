@@ -61,7 +61,26 @@ class HomeViewState extends State<HomeView> {
             ),
             Expanded(
               //TODO: Replace this Text child with a ListView.builder
-              child: Text('Hi'),
+              child: ListView.builder(
+                  itemCount: stockList.length,
+                  itemBuilder: (BuildContext context, index) {
+                    return Card(
+                      child: ListTile(
+                        title: Text(
+                          'Symbol: ${stockList[index]['symbol']}',
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                        subtitle: Text(
+                          'Name: ${stockList[index]['name']}',
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                        trailing: Text(
+                          'Price: \$${stockList[index]['price']} USD',
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                      ),
+                    );
+                  }),
             ),
           ],
         ),
@@ -111,7 +130,31 @@ class HomeViewState extends State<HomeView> {
                       //attach them to stockList,
                       //then print all stocks to the console and,
                       //finally call setstate at the end.
-                      
+                      var companyData =
+                          await stockService.getCompanyInfo(stockSymbol);
+                      var stockData = await stockService.getQuote(stockSymbol);
+                      if (companyData == null) {
+                        print(
+                            "Call to getCompanyInfo failed to return data");
+                      } 
+                      else if (stockData == null) {
+                        print(
+                            "Call to getQuote failed to return data");
+                      }
+                      else {
+                        symbol = companyData['Symbol'];
+                        companyName = companyData['Name'];
+                        price = stockData['Global Quote']['05. price'];
+                        await databaseService.insertStock({
+                          'symbol': symbol,
+                          'name': companyName,
+                          'price': price
+                        });
+                        stockList =
+                            await databaseService.getAllStocksFromDb();
+                        databaseService.printAllStocksInDbToConsole();
+                        setState(() {});
+                      }
                     } catch (e) {
                       print('HomeView inputStock catch: $e');
                     }
